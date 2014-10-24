@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ersv1:getExchangeRate xmlns:ersv1="http://www.codecentric.de.de/esb/schema/ExchangeRateService/v1">
+	<ersv1:sourceCurrency>EUR</ersv1:sourceCurrency>
+	<ersv1:targetCurrency>USD</ersv1:targetCurrency>
+</ersv1:getExchangeRate>

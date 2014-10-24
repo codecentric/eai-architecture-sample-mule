@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.5.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+
+	<jms:activemq-connector name="JMSConnection" username="admin" password="admin" brokerURL="tcp://10.0.1.11:61616" validateConnections="true" doc:name="Active MQ"/>
+
+	<mulexml:namespace-manager includeConfigNamespaces="true">
+		<mulexml:namespace prefix="ersv1" uri="http://www.codecentric.de.de/esb/schema/ExchangeRateService/v1"/>
+    </mulexml:namespace-manager>
+
+    <flow name="ExchangePortalAdapterFlow1" doc:name="ExchangePortalAdapterFlow1">
+        <http:inbound-endpoint exchange-pattern="request-response" host="localhost" port="8081" doc:name="HTTP"/>
+        <set-payload value="&lt;xx:xml xmlns:xx=&quot;xx&quot;&gt;&lt;/xx:xml&gt;" doc:name="Set Payload"/>
+        <mulexml:xslt-transformer maxIdleTransformers="2" maxActiveTransformers="5" doc:name="transform Request" outputEncoding="UTF-8" xsl-file="transformRequest.xslt">
+			<mulexml:context-property key="sourceRate" value="#[message.inboundProperties['http.query.params']['sourceRate']]"/>
+			<mulexml:context-property key="targetRate" value="#[message.inboundProperties['http.query.params']['targetRate']]"/>
+        </mulexml:xslt-transformer>
+        <jms:outbound-endpoint doc:name="JMS" connector-ref="JMSConnection" exchange-pattern="request-response" queue="de.codecentric.services.cdm.source.ExchangeRateService.v1"/>
+        <set-payload value="#[xpath('ersv1:getExchangeRateResponse/ersv1:exchangeRate').text]" doc:name="Set Payload"/>
+    </flow>
+</mule>

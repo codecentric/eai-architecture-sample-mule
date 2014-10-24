@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" 
+	targetNamespace="http://www.codecentric.de.de/esb/schema/ExchangeRateService/v1" 
+	xmlns:tns="http://www.codecentric.de/esb/schema/ExchangeRateService/v1" 
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	elementFormDefault="qualified" 
+	attributeFormDefault="unqualified">
+	
+	
+	<xs:element name="getExchangeRate" type="tns:GetExchangeRate" />
+	<xs:element name="getExchangeRateResponse" type="tns:GetExchangeRateResponse" />
+	
+	<xs:complexType name="GetExchangeRate">
+		<xs:sequence>
+			<xs:element name="sourceCurrency" type="xs:string" minOccurs="1" maxOccurs="1" />
+			<xs:element name="targetCurrency" type="xs:string" minOccurs="1" maxOccurs="1" />
+		</xs:sequence>
+	</xs:complexType>
+		
+	<xs:complexType name="GetExchangeRateResponse">
+		<xs:sequence>
+			<xs:element name="exchangeRate" type="xs:double" minOccurs="1" maxOccurs="1" />
+		</xs:sequence>
+	</xs:complexType>
+	
+</schema>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.5.0"
+	xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+	<spring:beans>
+        <spring:bean id="exchangeStore" class="org.mule.util.store.SimpleMemoryObjectStore"/>
+    </spring:beans>
+    
+    <objectstore:config name="ObjectStore" objectStore-ref="exchangeStore" doc:name="ObjectStore"/>
+    
+
+
+    <jms:activemq-connector name="JMSConnection" username="admin" password="admin" brokerURL="tcp://10.0.1.11:61616" validateConnections="true" doc:name="Active MQ"/>
+    
+	<mulexml:namespace-manager includeConfigNamespaces="true">
+		<mulexml:namespace prefix="ersv1" uri="http://www.codecentric.de.de/esb/schema/ExchangeRateService/v1"/>
+		<mulexml:namespace prefix="excr"  uri="http://www.codecentric.de.de/esb/schema/ExchangeRates/v1"/>
+    </mulexml:namespace-manager>
+    
+    <flow name="ExchangeRateDBAdapterV1" doc:name="ExchangeRateDBAdapterV1">
+        <jms:inbound-endpoint queue="de.codecentric.services.cdm.target.ExchangeRateService.v1" connector-ref="JMSConnection" doc:name="JMS" exchange-pattern="request-response"/>
+        <flow-ref name="setRequestParams" doc:name="setRequestParams"/>
+		<objectstore:retrieve config-ref="ObjectStore" key="exchangeRates" doc:name="ObjectStore"></objectstore:retrieve>
+        <set-variable variableName="targetRate" value="#[xpath('/excr:exchangeRates/excr:exchangeRate[excr:source= &quot;'+ flowVars.sourceCurrency +'&quot; and excr:target= &quot;'+ flowVars.targetCurrency +'&quot;]/excr:rate').text]" doc:name="set targetRate"/>
+        <mulexml:xslt-transformer maxIdleTransformers="2" maxActiveTransformers="5" outputEncoding="UTF-8" doc:name="createResponse" xsl-file="transformResponse.xslt">
+        	<mulexml:context-property key="targetRate" value="#[flowVars.targetRate]"/>
+        </mulexml:xslt-transformer>
+
+        
+    </flow>
+    <sub-flow name="setRequestParams" doc:name="setRequestParams">
+        <set-variable variableName="sourceCurrency" value="#[xpath('ersv1:getExchangeRate/ersv1:sourceCurrency').text]" doc:name="set sourceCurrency"/>
+        <set-variable variableName="targetCurrency" value="#[xpath('ersv1:getExchangeRate/ersv1:targetCurrency').text]" doc:name="set targetCurrency"/>
+    </sub-flow>
+    
+    <flow name="ReadExchangeRatesFromFile" doc:name="ReadExchangeRatesFromFile">
+        <file:inbound-endpoint path="C:\Temp\exchangeRates" responseTimeout="10000" doc:name="File"/>
+        <file:file-to-string-transformer doc:name="File to String"/>
+		
+		
+		<objectstore:store config-ref="ObjectStore" key="exchangeRates" value-ref="#[message.payload]" doc:name="ObjectStore" overwrite="true"/>
+    </flow>
+</mule>
